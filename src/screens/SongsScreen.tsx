@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FlatList,
-  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -11,32 +10,68 @@ import {
   View,
 } from 'react-native';
 import { theme } from '../config/theme';
-import { demoSongs } from '../demo/seedData';
+import { getSongs } from '../services/content';
+import type { Song } from '../types';
 
-export default function SongsScreen() {
-  const [search, setSearch] = React.useState('');
-  const filtered = demoSongs.filter((song) =>
+export default function SongsScreen({ navigation }: any) {
+  const [search, setSearch] = useState('');
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getSongs()
+      .then((data) => {
+        if (isMounted) {
+          setSongs(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filtered = songs.filter((song) =>
     song.title.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.header}>Songs</Text>
+        <Text style={styles.header}>Christian Songs</Text>
         <TextInput
           value={search}
           onChangeText={setSearch}
           placeholder="Search songs by title"
           style={styles.input}
+          placeholderTextColor={theme.colors.muted}
         />
 
-        {filtered.map((song) => (
-          <Pressable key={song.id} style={styles.songCard}>
-            <Text style={styles.songTitle}>{song.title}</Text>
-            <Text style={styles.meta}>{song.language === 'te' ? 'Telugu' : 'English'} • {song.category}</Text>
-            <Text style={styles.meta}>Date added: {song.dateAdded}</Text>
-          </Pressable>
-        ))}
+        {loading ? (
+          <Text style={styles.meta}>Loading songs...</Text>
+        ) : filtered.length === 0 ? (
+          <Text style={styles.meta}>No songs found</Text>
+        ) : (
+          filtered.map((song) => (
+            <Pressable
+              key={song.id}
+              style={styles.songCard}
+              onPress={() => navigation.navigate('SongDetail', { song })}
+            >
+              <Text style={styles.songTitle}>{song.title}</Text>
+              <Text style={styles.meta}>
+                {song.language === 'te' ? 'Telugu' : 'English'} • {song.category}
+              </Text>
+              <Text style={styles.meta}>Added: {song.dateAdded}</Text>
+            </Pressable>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -53,6 +88,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     padding: 14,
     marginBottom: 18,
+    color: theme.colors.text,
   },
   songCard: {
     backgroundColor: '#fff',
@@ -63,5 +99,5 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   songTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.text },
-  meta: { color: theme.colors.muted, marginTop: 6 },
+  meta: { color: theme.colors.muted, marginTop: 6, fontSize: 13 },
 });
