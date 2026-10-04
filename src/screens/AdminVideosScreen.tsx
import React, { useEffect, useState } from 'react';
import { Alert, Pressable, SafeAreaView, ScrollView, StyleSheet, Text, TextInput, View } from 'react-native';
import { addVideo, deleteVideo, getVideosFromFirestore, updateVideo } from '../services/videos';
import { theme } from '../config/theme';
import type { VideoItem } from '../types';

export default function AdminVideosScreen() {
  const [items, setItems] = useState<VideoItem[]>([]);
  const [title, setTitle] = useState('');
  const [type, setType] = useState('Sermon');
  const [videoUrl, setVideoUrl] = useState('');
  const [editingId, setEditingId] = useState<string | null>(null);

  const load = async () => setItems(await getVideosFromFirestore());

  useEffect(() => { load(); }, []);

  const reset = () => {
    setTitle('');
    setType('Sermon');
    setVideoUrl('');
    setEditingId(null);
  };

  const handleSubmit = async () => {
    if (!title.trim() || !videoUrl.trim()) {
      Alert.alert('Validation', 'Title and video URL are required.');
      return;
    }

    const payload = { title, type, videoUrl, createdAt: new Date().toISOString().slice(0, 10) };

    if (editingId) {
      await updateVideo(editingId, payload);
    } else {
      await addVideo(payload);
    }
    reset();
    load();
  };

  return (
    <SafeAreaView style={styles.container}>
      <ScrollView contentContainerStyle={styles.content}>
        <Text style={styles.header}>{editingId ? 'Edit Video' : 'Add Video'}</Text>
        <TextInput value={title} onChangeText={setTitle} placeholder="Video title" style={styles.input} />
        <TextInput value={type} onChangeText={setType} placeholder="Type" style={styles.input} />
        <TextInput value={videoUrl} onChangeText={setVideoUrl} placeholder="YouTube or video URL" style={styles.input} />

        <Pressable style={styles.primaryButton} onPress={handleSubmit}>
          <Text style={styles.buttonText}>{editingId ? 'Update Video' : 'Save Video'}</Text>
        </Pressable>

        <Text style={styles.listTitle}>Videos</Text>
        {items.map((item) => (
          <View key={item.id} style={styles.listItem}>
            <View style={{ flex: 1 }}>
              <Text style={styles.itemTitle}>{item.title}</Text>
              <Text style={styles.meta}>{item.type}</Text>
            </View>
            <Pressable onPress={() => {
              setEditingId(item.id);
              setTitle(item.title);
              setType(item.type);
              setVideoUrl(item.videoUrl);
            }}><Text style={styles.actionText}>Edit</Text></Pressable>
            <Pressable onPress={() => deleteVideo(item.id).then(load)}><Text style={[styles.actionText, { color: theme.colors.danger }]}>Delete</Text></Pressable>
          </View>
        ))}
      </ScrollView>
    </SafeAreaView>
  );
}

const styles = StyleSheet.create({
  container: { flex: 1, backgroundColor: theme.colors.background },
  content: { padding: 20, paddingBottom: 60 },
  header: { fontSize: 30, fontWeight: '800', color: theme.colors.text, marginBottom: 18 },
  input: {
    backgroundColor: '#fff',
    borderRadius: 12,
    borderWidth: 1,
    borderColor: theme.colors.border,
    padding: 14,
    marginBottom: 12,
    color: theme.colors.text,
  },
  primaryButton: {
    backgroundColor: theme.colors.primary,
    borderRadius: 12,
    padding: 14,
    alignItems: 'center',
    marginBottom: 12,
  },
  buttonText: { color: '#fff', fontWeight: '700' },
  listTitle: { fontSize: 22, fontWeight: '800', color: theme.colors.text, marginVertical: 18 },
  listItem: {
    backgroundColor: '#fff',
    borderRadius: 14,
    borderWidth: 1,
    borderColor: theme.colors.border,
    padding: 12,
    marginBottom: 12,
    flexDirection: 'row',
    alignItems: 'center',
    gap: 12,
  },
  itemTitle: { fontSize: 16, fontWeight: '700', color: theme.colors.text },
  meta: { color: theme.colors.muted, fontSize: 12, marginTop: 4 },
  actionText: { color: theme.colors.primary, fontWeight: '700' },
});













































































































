@@ -1,0 +1,923 @@
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { theme } from '../config/theme';
+import { addAnnouncement, deleteAnnouncement, getAnnouncementsFromFirestore, updateAnnouncement } from '../services/announcements';
+import { pickImage, uploadImage } from '../services/storage';
+import type { Announcement } from '../types';
+
+export default function AdminAnnouncementsScreen() {
+  const [items, setItems] = useState<Announcement[]>([]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const load = async () => setItems(await getAnnouncementsFromFirestore());
+
+  useEffect(() => { load(); }, []);
+
+  const reset = () => {
+    setTitle('');
+    setDescription('');
+    setDate(new Date().toISOString().slice(0, 10));
+    setImageUrl('');
+    setVideoUrl('');
+    setContactNumber('');
+    setEditingId(null);
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim() || !description.trim()) {
+      Alert.alert('Validation', 'Title and description are required.');
+      return;
+    }
+
+    const payload = { title, description, date, imageUrl, videoUrl, contactNumber };
+
+    if (editingId) {
+      await updateAnnouncement(editingId, payload);
+    } else {
+      await addAnnouncement(payload);
+    }
+    reset();
+    load();
+  };
+
+  const handlePickImage = async () => {
+    const uri = await pickImage();
+    if (!uri) return;
+    setImageUrl(await uploadImage(uri, `announcements/${Date.now()}.jpg`));
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.header}>{editingId ? 'Edit Announcement' : 'Add Announcement'}</Text>
+
+        <TextInput value={title} onChangeText={setTitle} placeholder="Title" style={styles.input} />
+        <TextInput value={description} onChangeText={setDescription} multiline numberOfLines={4} placeholder="Description" style={[styles.input, styles.textArea]} />
+        <TextInput value={date} onChangeText={setDate} placeholder="Date (YYYY-MM-DD)" style={styles.input} />
+        <TextInput value={videoUrl} onChangeText={setVideoUrl} placeholder="Optional video URL" style={styles.input} />
+        <TextInput value={contactNumber} onChangeText={setContactNumber} placeholder="Optional contact number" style={styles.input} />
+
+        <Pressable style={styles.imageButton} onPress={handlePickImage}>
+          <Text style={styles.buttonText}>{imageUrl ? 'Change Image' : 'Upload Poster/Image'}</Text>
+        </Pressable>
+        {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.preview} /> : null}
+
+        <Pressable style={styles.primaryButton} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>{editingId ? 'Update Announcement' : 'Save Announcement'}</Text>
+        </Pressable>
+
+        <Text style={styles.listTitle}>Announcements</Text>
+        {items.map((item) => (
+          <View key={item.id} style={styles.listItem}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <Text style={styles.meta}>{item.date}</Text>
+            </View>
+            <Pressable onPress={() => {
+              setEditingId(item.id);
+              setTitle(item.title);
+              setDescription(item.description);
+              setDate(item.date);
+              setImageUrl(item.imageUrl || '');
+              setVideoUrl(item.videoUrl || '');
+              setContactNumber(item.contactNumber || '');
+            }}><Text style={styles.actionText}>Edit</Text></Pressable>
+            <Pressable onPress={() => deleteAnnouncement(item.id).then(load)}><Text style={[styles.actionText, { color: theme.colors.danger }]}>Delete</Text></Pressable>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  content: { padding: 20, paddingBottom: 60 },
+  header: { fontSize: 30, fontWeight: '800', color: theme.colors.text, marginBottom: 18 },
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 14,
+    marginBottom: 12,
+    color: theme.colors.text,
+  },
+  textArea: { minHeight: 140, textAlignVertical: 'top' },
+  imageButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  primaryButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  buttonText: { color: '#fff', fontWeight: '700' },
+  preview: { width: '100%', height: 200, borderRadius: 14, marginBottom: 20 },
+  listTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text, marginVertical: 18 },
+  listItem: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  itemTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
+  meta: { color: theme.colors.muted, fontSize: 12, marginTop: 4 },
+  actionText: { color: theme.colors.primary, fontWeight: '700' },
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

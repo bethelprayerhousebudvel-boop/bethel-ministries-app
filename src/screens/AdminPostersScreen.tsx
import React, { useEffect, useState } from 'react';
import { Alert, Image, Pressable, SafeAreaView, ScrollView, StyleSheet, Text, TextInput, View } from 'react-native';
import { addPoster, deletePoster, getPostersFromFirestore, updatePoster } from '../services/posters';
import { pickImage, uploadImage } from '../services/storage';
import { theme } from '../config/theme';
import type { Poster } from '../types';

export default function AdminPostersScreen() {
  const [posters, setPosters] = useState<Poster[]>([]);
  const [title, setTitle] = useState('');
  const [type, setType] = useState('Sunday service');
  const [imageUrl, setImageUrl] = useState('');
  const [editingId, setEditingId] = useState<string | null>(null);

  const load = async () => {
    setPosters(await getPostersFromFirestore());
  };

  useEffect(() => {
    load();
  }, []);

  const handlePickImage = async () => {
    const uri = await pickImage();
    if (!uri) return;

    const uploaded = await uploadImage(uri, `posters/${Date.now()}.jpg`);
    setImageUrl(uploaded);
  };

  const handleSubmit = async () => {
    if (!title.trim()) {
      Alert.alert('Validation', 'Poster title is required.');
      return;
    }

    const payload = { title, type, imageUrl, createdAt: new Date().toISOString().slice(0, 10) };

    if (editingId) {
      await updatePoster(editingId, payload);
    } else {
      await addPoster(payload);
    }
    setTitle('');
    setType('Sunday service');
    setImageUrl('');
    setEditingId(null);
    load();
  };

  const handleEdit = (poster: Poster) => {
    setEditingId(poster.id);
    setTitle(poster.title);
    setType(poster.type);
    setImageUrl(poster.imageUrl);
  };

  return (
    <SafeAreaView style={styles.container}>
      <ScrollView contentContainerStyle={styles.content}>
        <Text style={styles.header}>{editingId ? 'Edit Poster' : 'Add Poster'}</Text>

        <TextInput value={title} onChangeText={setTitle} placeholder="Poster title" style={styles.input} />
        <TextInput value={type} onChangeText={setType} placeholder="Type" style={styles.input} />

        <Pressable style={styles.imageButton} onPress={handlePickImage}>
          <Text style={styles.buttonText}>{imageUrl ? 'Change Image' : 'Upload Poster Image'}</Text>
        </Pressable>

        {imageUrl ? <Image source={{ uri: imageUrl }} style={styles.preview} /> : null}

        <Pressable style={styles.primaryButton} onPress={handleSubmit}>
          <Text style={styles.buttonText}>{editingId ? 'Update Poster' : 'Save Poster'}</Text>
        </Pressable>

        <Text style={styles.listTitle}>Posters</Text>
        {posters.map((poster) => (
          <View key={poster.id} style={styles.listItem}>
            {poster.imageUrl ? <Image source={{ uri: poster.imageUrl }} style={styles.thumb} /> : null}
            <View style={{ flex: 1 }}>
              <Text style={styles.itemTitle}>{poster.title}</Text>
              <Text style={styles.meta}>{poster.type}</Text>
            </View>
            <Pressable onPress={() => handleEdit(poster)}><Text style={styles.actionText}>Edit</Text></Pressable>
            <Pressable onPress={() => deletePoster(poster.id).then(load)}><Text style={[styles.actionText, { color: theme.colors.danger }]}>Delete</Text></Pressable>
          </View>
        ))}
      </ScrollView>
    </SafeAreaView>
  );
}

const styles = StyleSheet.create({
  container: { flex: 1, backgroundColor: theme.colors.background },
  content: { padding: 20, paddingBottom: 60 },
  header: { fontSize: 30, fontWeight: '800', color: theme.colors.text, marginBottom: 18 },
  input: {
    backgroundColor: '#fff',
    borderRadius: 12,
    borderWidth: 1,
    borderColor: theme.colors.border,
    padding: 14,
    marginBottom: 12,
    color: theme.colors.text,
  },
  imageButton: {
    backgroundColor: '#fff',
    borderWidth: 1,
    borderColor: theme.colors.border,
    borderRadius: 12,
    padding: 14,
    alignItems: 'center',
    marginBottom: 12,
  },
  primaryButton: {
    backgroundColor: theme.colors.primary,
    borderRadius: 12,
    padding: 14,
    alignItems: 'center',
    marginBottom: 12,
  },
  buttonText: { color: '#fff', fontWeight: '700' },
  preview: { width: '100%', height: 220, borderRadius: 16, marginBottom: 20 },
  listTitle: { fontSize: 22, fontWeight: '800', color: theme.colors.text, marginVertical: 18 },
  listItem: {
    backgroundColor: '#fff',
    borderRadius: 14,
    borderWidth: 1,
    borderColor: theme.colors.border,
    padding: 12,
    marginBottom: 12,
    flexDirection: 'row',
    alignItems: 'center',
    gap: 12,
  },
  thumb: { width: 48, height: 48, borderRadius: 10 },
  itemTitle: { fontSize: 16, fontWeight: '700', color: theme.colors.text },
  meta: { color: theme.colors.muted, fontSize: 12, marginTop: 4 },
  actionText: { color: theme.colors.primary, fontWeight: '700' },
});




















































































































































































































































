@@ -1,0 +1,342 @@
+import React, { useEffect, useState } from 'react';
+import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { theme } from '../config/theme';
+import { addSong, deleteSong, getSongsFromFirestore, updateSong } from '../services/songs';
+import type { Song } from '../types';
+
+export default function AdminSongsScreen() {
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [title, setTitle] = useState('');
+  const [language, setLanguage] = useState<'en' | 'te'>('en');
+  const [category, setCategory] = useState('Worship');
+  const [lyrics, setLyrics] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const loadSongs = async () => {
+    const items = await getSongsFromFirestore();
+    setSongs(items);
+  };
+
+  useEffect(() => {
+    loadSongs();
+  }, []);
+
+  const resetForm = () => {
+    setTitle('');
+    setLanguage('en');
+    setCategory('Worship');
+    setLyrics('');
+    setAudioUrl('');
+    setEditingId(null);
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim() || !lyrics.trim()) {
+      Alert.alert('Validation', 'Title and lyrics are required.');
+      return;
+    }
+
+    const payload = { title, language, category, lyrics, dateAdded: new Date().toISOString().slice(0, 10), audioUrl };
+
+    if (editingId) {
+      await updateSong(editingId, payload);
+    } else {
+      await addSong(payload);
+    }
+
+    resetForm();
+    loadSongs();
+  };
+
+  const handleEdit = (song: Song) => {
+    setEditingId(song.id);
+    setTitle(song.title);
+    setLanguage(song.language);
+    setCategory(song.category);
+    setLyrics(song.lyrics);
+    setAudioUrl(song.audioUrl || '');
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteSong(id);
+    loadSongs();
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.header}>{editingId ? 'Edit Song' : 'Add Song'}</Text>
+
+        <TextInput value={title} onChangeText={setTitle} placeholder="Song title" style={styles.input} />
+        <TextInput value={category} onChangeText={setCategory} placeholder="Category" style={styles.input} />
+        <TextInput value={audioUrl} onChangeText={setAudioUrl} placeholder="Optional audio/video URL" style={styles.input} />
+
+        <View style={styles.row}>
+          <Pressable style={[styles.languageButton, language === 'en' && styles.activeButton]} onPress={() => setLanguage('en')}>
+            <Text style={styles.buttonText}>English</Text>
+          </Pressable>
+          <Pressable style={[styles.languageButton, language === 'te' && styles.activeButton]} onPress={() => setLanguage('te')}>
+            <Text style={styles.buttonText}>Telugu</Text>
+          </Pressable>
+        </View>
+
+        <TextInput value={lyrics} onChangeText={setLyrics} multiline numberOfLines={12} placeholder="Lyrics" style={[styles.input, styles.lyricsInput]} />
+
+        <View style={styles.row}>
+          <Pressable style={styles.primaryButton} onPress={handleSubmit}>
+            <Text style={styles.buttonText}>{editingId ? 'Update Song' : 'Save Song'}</Text>
+          </Pressable>
+          {editingId ? (
+            <Pressable style={styles.secondaryButton} onPress={resetForm}>
+              <Text style={styles.secondaryText}>Cancel</Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <Text style={styles.listTitle}>Songs</Text>
+        {songs.map((song) => (
+          <View key={song.id} style={styles.listItem}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.songTitle}>{song.title}</Text>
+              <Text style={styles.meta}>{song.language.toUpperCase()} • {song.category}</Text>
+            </View>
+            <Pressable onPress={() => handleEdit(song)}>
+              <Text style={styles.actionText}>Edit</Text>
+            </Pressable>
+            <Pressable onPress={() => handleDelete(song.id)}>
+              <Text style={[styles.actionText, { color: theme.colors.danger }]}>Delete</Text>
+            </Pressable>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  content: { padding: 20, paddingBottom: 60 },
+  header: { fontSize: 30, fontWeight: '800', color: theme.colors.text, marginBottom: 18 },
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 14,
+    marginBottom: 12,
+    color: theme.colors.text,
+  },
+  lyricsInput: { minHeight: 200, textAlignVertical: 'top' },
+  row: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  languageButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 12,
+    alignItems: 'center',
+  },
+  activeButton: { backgroundColor: theme.colors.primary },
+  primaryButton: {
+    flex: 1,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 14,
+    alignItems: 'center',
+  },
+  buttonText: { color: '#fff', fontWeight: '700' },
+  secondaryText: { color: theme.colors.text, fontWeight: '700' },
+  listTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text, marginVertical: 18 },
+  listItem: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  songTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
+  meta: { color: theme.colors.muted, fontSize: 12, marginTop: 4 },
+  actionText: { color: theme.colors.primary, fontWeight: '700' },
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

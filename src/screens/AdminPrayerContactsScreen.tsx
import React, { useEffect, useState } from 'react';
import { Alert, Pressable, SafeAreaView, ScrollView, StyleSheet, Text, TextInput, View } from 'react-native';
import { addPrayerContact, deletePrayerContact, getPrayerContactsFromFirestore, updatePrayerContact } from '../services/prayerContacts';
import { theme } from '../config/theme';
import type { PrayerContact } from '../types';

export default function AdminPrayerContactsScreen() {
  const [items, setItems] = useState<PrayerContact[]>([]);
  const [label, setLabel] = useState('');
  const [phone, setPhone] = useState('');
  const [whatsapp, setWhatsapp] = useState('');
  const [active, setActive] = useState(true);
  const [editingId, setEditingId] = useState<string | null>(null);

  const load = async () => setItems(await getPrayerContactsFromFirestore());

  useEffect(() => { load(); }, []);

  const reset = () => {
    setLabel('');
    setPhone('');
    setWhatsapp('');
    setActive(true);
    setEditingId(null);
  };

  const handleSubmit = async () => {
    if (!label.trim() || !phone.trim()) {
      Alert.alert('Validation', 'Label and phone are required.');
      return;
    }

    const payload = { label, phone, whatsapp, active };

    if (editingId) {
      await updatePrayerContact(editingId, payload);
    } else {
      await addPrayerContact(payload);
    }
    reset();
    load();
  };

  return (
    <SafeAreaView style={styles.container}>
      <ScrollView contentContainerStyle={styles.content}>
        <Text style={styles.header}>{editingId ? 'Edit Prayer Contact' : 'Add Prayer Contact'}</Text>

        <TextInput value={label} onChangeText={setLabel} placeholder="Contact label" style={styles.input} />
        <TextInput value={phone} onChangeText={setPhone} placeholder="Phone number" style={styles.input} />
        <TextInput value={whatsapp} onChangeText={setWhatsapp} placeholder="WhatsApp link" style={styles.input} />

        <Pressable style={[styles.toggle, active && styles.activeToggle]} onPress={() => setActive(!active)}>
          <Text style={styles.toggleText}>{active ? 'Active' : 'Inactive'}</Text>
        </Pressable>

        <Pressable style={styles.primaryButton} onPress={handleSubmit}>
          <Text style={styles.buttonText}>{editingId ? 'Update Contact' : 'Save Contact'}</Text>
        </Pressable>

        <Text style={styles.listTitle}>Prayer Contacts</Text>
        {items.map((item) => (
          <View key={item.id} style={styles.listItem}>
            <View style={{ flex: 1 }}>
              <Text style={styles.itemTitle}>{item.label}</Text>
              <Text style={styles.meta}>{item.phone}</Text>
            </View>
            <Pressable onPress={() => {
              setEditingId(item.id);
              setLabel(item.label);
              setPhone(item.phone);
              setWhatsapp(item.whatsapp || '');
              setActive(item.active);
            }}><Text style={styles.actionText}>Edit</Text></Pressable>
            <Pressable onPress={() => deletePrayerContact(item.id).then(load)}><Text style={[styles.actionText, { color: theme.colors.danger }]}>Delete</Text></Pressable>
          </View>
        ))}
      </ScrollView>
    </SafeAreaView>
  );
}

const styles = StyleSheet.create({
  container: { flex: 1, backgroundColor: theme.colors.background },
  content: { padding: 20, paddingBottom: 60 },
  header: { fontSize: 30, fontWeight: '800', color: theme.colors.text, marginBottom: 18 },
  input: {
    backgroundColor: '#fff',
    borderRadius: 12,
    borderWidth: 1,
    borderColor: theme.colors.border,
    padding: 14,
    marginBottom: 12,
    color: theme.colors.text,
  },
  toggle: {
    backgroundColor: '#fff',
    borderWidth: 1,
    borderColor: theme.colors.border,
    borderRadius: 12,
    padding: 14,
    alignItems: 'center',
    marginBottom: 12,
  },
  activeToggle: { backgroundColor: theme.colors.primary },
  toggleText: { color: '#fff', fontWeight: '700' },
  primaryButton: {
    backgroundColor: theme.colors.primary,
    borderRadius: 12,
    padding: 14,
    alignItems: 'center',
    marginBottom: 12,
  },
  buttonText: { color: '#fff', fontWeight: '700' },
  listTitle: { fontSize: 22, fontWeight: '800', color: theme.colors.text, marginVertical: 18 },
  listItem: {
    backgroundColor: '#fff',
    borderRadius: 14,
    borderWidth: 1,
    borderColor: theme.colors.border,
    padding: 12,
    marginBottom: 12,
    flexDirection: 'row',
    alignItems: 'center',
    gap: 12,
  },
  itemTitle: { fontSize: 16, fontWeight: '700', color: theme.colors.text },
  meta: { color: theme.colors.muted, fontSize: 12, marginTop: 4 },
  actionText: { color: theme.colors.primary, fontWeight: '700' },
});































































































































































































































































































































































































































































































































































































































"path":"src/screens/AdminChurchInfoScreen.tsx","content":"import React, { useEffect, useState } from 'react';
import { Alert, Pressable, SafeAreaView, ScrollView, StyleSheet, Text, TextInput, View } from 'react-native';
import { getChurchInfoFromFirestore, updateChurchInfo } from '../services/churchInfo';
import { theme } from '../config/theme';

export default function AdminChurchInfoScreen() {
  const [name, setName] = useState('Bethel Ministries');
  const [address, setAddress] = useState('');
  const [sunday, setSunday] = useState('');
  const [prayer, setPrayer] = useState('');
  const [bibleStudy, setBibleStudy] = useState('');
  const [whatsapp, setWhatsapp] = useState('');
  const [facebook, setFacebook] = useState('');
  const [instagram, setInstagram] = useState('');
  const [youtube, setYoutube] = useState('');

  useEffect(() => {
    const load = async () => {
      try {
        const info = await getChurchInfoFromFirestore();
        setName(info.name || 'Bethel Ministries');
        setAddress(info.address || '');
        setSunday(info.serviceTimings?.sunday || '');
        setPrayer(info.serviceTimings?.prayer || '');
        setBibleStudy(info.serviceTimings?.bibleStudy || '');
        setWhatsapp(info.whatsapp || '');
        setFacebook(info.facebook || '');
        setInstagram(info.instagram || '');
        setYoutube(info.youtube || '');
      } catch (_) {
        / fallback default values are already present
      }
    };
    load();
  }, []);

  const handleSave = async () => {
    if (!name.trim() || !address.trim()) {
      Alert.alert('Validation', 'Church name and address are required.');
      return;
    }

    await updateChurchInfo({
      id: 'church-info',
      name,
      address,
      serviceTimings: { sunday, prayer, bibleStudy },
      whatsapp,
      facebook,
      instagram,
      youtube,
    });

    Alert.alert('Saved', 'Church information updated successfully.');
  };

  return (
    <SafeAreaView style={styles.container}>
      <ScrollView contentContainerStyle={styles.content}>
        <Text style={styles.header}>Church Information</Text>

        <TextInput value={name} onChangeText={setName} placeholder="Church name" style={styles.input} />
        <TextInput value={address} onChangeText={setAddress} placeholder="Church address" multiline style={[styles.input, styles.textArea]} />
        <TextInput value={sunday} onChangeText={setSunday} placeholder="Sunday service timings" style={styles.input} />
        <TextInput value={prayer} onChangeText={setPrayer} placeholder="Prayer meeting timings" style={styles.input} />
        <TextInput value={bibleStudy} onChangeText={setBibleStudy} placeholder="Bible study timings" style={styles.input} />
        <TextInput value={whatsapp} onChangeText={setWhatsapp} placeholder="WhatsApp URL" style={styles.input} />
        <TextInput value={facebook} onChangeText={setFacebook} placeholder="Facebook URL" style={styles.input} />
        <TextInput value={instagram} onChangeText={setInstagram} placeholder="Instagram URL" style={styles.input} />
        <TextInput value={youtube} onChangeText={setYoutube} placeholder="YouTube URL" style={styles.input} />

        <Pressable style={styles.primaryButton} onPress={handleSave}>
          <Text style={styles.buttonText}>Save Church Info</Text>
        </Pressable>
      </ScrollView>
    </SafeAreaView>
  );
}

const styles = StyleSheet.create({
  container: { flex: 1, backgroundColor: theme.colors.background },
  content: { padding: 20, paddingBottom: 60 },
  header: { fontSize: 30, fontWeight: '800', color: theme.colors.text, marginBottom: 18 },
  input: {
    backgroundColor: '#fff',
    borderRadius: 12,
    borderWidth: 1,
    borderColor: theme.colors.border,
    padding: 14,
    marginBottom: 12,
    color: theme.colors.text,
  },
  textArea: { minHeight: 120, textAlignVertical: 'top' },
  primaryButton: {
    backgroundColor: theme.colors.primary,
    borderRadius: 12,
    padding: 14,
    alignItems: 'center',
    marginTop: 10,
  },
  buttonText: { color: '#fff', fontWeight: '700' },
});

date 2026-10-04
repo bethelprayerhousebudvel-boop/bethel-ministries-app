@@ -1,0 +1,762 @@
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { addPastor, deletePastor, getPastorsFromFirestore, updatePastor } from '../services/pastors';
+import { pickImage, uploadImage } from '../services/storage';
+import { theme } from '../config/theme';
+import type { Pastor } from '../types';
+
+export default function AdminPastorsScreen() {
+  const [items, setItems] = useState<Pastor[]>([]);
+  const [name, setName] = useState('');
+  const [position, setPosition] = useState('');
+  const [bio, setBio] = useState('');
+  const [ministry, setMinistry] = useState('');
+  const [phone, setPhone] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const load = async () => setItems(await getPastorsFromFirestore());
+
+  useEffect(() => { load(); }, []);
+
+  const reset = () => {
+    setName('');
+    setPosition('');
+    setBio('');
+    setMinistry('');
+    setPhone('');
+    setWhatsappNumber('');
+    setPhotoUrl('');
+    setEditingId(null);
+  };
+
+  const handlePickPhoto = async () => {
+    const uri = await pickImage();
+    if (!uri) return;
+    setPhotoUrl(await uploadImage(uri, `pastors/${Date.now()}.jpg`));
+  };
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !bio.trim()) {
+      Alert.alert('Validation', 'Name and biography are required.');
+      return;
+    }
+
+    const payload = { name, position, bio, ministry, phone, photoUrl, whatsappNumber };
+
+    if (editingId) {
+      await updatePastor(editingId, payload);
+    } else {
+      await addPastor(payload);
+    }
+    reset();
+    load();
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.header}>{editingId ? 'Edit Pastor' : 'Add Pastor'}</Text>
+
+        <TextInput value={name} onChangeText={setName} placeholder="Full name" style={styles.input} />
+        <TextInput value={position} onChangeText={setPosition} placeholder="Role/position" style={styles.input} />
+        <TextInput value={ministry} onChangeText={setMinistry} placeholder="Ministry" style={styles.input} />
+        <TextInput value={phone} onChangeText={setPhone} placeholder="Phone number" style={styles.input} />
+        <TextInput value={whatsappNumber} onChangeText={setWhatsappNumber} placeholder="WhatsApp number" style={styles.input} />
+        <TextInput value={bio} onChangeText={setBio} multiline numberOfLines={5} placeholder="Short biography" style={[styles.input, styles.textArea]} />
+
+        <Pressable style={styles.imageButton} onPress={handlePickPhoto}>
+          <Text style={styles.buttonText}>{photoUrl ? 'Change Photo' : 'Upload Photo'}</Text>
+        </Pressable>
+        {photoUrl ? <Image source={{ uri: photoUrl }} style={styles.preview} /> : null}
+
+        <Pressable style={styles.primaryButton} onPress={handleSubmit}>
+          <Text style={styles.buttonText}>{editingId ? 'Update Pastor' : 'Save Pastor'}</Text>
+        </Pressable>
+
+        <Text style={styles.listTitle}>Pastors</Text>
+        {items.map((item) => (
+          <View key={item.id} style={styles.listItem}>
+            {item.photoUrl ? <Image source={{ uri: item.photoUrl }} style={styles.thumb} /> : null}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.itemTitle}>{item.name}</Text>
+              <Text style={styles.meta}>{item.position}</Text>
+            </View>
+            <Pressable onPress={() => {
+              setEditingId(item.id);
+              setName(item.name);
+              setPosition(item.position);
+              setBio(item.bio);
+              setMinistry(item.ministry);
+              setPhone(item.phone);
+              setWhatsappNumber(item.whatsappNumber || '');
+              setPhotoUrl(item.photoUrl);
+            }}><Text style={styles.actionText}>Edit</Text></Pressable>
+            <Pressable onPress={() => deletePastor(item.id).then(load)}><Text style={[styles.actionText, { color: theme.colors.danger }]}>Delete</Text></Pressable>
+          </View>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  content: { padding: 20, paddingBottom: 60 },
+  header: { fontSize: 30, fontWeight: '800', color: theme.colors.text, marginBottom: 18 },
+  input: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 14,
+    marginBottom: 12,
+    color: theme.colors.text,
+  },
+  textArea: { minHeight: 120, textAlignVertical: 'top' },
+  imageButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  primaryButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  buttonText: { color: '#fff', fontWeight: '700' },
+  preview: { width: '100%', height: 180, borderRadius: 14, marginBottom: 20 },
+  listTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text, marginVertical: 18 },
+  listItem: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  thumb: { width: 48, height: 48, borderRadius: 24 },
+  itemTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
+  meta: { color: theme.colors.muted, fontSize: 12, marginTop: 4 },
+  actionText: { color: theme.colors.primary, fontWeight: '700' },
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
