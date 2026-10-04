@@ -1,0 +1,16 @@
+export const en = {
+  welcome: 'Welcome to Bethel Ministries',
+  home: 'Home',
+  songs: 'Songs',
+  posters: 'Posters',
+  videos: 'Videos',
+  pastors: 'Pastors',
+  more: 'More',
+  prayerRequest: 'Prayer Request',
+  latestAnnouncement: 'Latest church announcement',
+  latestPoster: 'Latest poster',
+  latestVideo: 'Latest video',
+  featuredSong: 'Featured song',
+  serviceInfo: 'Church service information',
+  searchSongs: 'Search songs by title',
+};

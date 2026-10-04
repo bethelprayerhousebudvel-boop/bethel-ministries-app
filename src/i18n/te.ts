@@ -1,0 +1,16 @@
+export const te = {
+  welcome: 'బెథెల్ మినిస్టリーズకు స్వాగతం',
+  home: 'హోమ్',
+  songs: 'పాటలు',
+  posters: 'పోస్టర్లు',
+  videos: 'వీడియోలు',
+  pastors: 'పాస్టర్స్',
+  more: 'మరింత',
+  prayerRequest: 'ప్రార్థన అభ్యర్థన',
+  latestAnnouncement: 'తాజా చర్చ్ ప్రకటన',
+  latestPoster: 'తాజా పోస్టర్',
+  latestVideo: 'తాజా వీడియో',
+  featuredSong: 'విశేషమైన పాట',
+  serviceInfo: 'చర్చి సేవ సమాచారం',
+  searchSongs: 'శీర్షికతో పాటలు వెతకండి',
+};
